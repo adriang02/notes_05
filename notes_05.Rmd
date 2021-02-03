@@ -350,10 +350,7 @@ flights %>%
     may need to use `mutate()` to make one or more of these variables.
 
 ```{r practice-1}
-flights %>%
-  filter(!is.na(dep_time)) %>%
-  mutate(dep_delay_hours = dep_delay / 60) %>%
-  select(year:dep_time, dep_delay, dep_delay_hours)
+
 ```
 
 (2) For each airplane (uniquely identified by `tailnum`), use a `group_by()` 
@@ -362,13 +359,7 @@ flights %>%
     airplanes in terms of mean distance traveled per flight.
 
 ```{r practice-2}
-flights %>%
-  group_by(tailnum) %>%
-  summarize(n_dist = n(),
-            mean_dist = mean(distance, na.rm = TRUE),
-            sd_dist = sd(distance, na.rm = TRUE)) %>%
-  arrange(desc(mean_dist)) %>%
-  slice(c(1:5,((n()-4):n())))   
+
 ```
 
 ### Additional Resources

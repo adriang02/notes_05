@@ -1,0 +1,399 @@
+---
+title: "Data wrangling I"
+author: ""
+date: ""
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Main ideas
+
+- Organizing our data according to a consistent set of "tidy" principles makes
+  data easy to work with and leverages the ways `R` is effective.
+  
+- Often we need to wrangle our data in order to extract meaning (including
+  creating new variables, calculating summary statistics, subsetting data, etc).
+  
+- Using only **seven key verbs** (functions) we can accomplish a wide variety 
+  of data wrangling tasks.
+
+>"Happy families are all alike; every unhappy family is unhappy in its own way"
+<br/>
+- John Tukey
+
+## Tidy Principles
+
+Tidy data has three related characteristics
+
+1. Each variable forms a column.
+2. Each observation forms a row.
+3. Each value has its own cell.
+
+Let's look at some examples!
+
+<img src="images/hyperwar-airplanes-on-hand.png">
+<br/>
+<br/>
+<img src="images/us-general-economic-characteristic-acs-2017.png">
+
+## Packages
+
+We'll make use of the following packages today.
+
+```{r packages, message=FALSE}
+library(tidyverse)
+#install.packages(nycflights13)
+library(nycflights13)  
+```
+
+## Data wrangling
+
+Often we need to wrangle our data to extract meaning. This includes calculating
+new variables, summary statistics, grouping by variables, renaming, reordering, 
+selecting subsets of data, filtering by various conditions, etc.
+
+We can accomplish a great deal of wrangling by learning just 
+**seven key verbs**. Each of these functions takes a data frame as input and 
+returns a data frame as output. All of these functions are in the `dplyr`
+package that is automatically loaded when `tidyverse` is loaded.
+
+- `filter()`
+- `arrange()`
+- `select()`
+- `slice()`
+- `mutate()`
+- `summarize()`
+- `group_by()`
+
+To demonstrate data wrangling we will use a dataset of characteristics of all
+flights departing from New York City (JFK, LGA, EWR) in 2013. You may need to
+install the package first using the commented line of code in the "packages"
+code chunk above.
+
+We first explore the data a bit.
+
+```{r explore-data}
+glimpse(flights)
+names(flights)
+head(flights)
+```
+
+The `head()` function returns "A tibble: 6 x 19" and then the first six rows of
+the `flights` data. A **tibble** is a tweaked, opinionated version of the `R`
+data frame. 
+
+There are a few differences between a `tidyverse` tibble and an `R` data frame. 
+Two of the main ones are described below.
+
+First, it provides more information than a data frame. When you print a tibble, 
+it will show the first ten rows and all of the columns that fit on the screen,
+along with the type of each column. Try this with the `flights` data. You can 
+modify the number of rows and columns shown using the `print()` function.
+
+**Question:** Can you print the first three rows and all columns of the 
+`flights` data? Check the documentation!
+
+```{r print}
+print(flights, n = 3)
+print(flights, width = Inf)
+```
+
+Second, tibbles are somewhat more strict than data frames when it comes to 
+subsetting data.
+
+### `select()`
+
+The `select()` function picks off one or more columns by name.
+
+Let's say we want a dataset that only contains the variables `dep_delay` and
+`arr_delay`.
+
+```{r select-vars}
+select(flights, dep_delay, arr_delay)
+```
+
+We can also use `select()` to exclude variables. Let's exclude `dep_delay` but
+keep all other variables
+
+```{r exclude-vars}
+select(flights, -dep_delay)
+```
+
+We can also use `select()` to select a range of variables. Here, we select the 
+first three variables representing the departure day.
+
+```{r exclude-range}
+select(flights, year:day)
+```
+
+Other helper select functions can be found by entering `?select` in  your
+Console pane.
+
+### `arrange()`
+
+The `arrange()` function orders rows (observations) in specific ways. 
+
+Let's arrange the data by descending departure delays, with large departure 
+delays on top.
+
+```{r arrange-delays-desc}
+arrange(flights, desc(dep_delay))
+```
+
+Or with low departure delays on top.
+
+```{r arrange-delays-asc}
+arrange(flights, dep_delay)
+```
+
+What if we only want to examine the `dep_delay` and `arr_delay` columns? We can
+combine `arrange()` and `select()`!
+
+```{r select-and-arrange}
+select(arrange(flights, desc(dep_delay)), dep_delay, arr_delay)
+```
+
+**It is not easy to understand what is going on in the code chunk above.**
+
+- we have to read from inside out and right to left
+- not clear which argument goes with which function
+- doesn't focus on the functions
+
+The pipe, `%>%`, is a technique for passing information from one process to 
+another. The pipe operator can be inserted with keyboard shortcuts 
+`cmd`/`ctrl` + `shift` + `M`.
+
+```{r pipe-demo}
+flights %>%
+  arrange(desc(dep_delay)) %>%
+  select(dep_delay, arr_delay)
+```
+
+When reading code "in English", say "and then" whenever you see a pipe.
+
+**Question:** How would you read the code chunk above in English? What is it
+accomplishing?
+
+Take `flights`, and then arrange it in descending order by departure delay,
+and then select variables departure delay and arrival delay.
+
+### `slice()`
+
+Slice selects rows based on their position.
+
+Here we slice off the first 5 rows of the `flights` data.
+
+```{r slice}
+flights %>%
+  slice(1:5)
+```
+
+**Question:** What is the code chunk below accomplishing? Guess before running
+the code.
+
+```{r arrange-slice}
+flights %>%
+  arrange(desc(dep_delay)) %>%
+  slice(1:5)
+```
+
+To add comments to code, use the pound sign. This is helpful for debugging as 
+well - you can temporarily disable a line.
+
+**Question:** What will happen if you comment out the line containing 
+`arrange()` in the code chunk above? Try it.
+
+You will only select the first 5 rows.
+
+### `filter()`
+
+`filter()` selects rows satisfying certain conditions.
+
+We can use a single condition. Here we select all rows where the destination
+airport is RDU.
+
+```{r rdu}
+flights %>%
+  filter(dest == "RDU")
+```
+
+We can use more than one condition. Here we select all rows where the 
+destination airport is RDU **and** the arrival delay is less than 0.
+
+```{r rdu-ontime}
+flights %>%
+  filter(dest == "RDU", arr_delay < 0)
+```
+
+More complex conditions are possible with the following logical and
+comparison operators!
+
+| Operator      | Definition                   |
+|---------------|------------------------------|
+| `<           `| is less than?                |
+| `<=          `| is less than or equal to?    |
+| `>           `| is greater than?             |
+| `>=          `| is greater than or equal to? |
+| `==          `| is exactly equal to?         |
+| `!=          `| is not equal to?             |
+| `x & y       `| is x AND y?                  |
+| `x \| y      `| is x OR y?                   |
+| `is.na(x)    `| is x NA?                     |
+| `!is.na(x)   `| is x not NA?                 |
+| `x %in% y    `| is x in y?                   |
+| `!(x %in% y) `| is x not in y?               |
+| `!x          `| is not x?                    |
+
+The final operator only makes sense if `x` is logical (TRUE / FALSE).
+
+**Question:** In plain English, what is the code below accomplishing?
+
+```{r nc-early}
+flights %>%
+  filter(dest %in% c("RDU", "GSO"), arr_delay < 0 | dep_delay < 0)
+```
+
+Filter flights where the destination is RDU or GSO and the arrival delay or
+the departure delay is less than 0 minutes.
+
+### `mutate()`
+
+`mutate()` creates a new variable.
+
+In the code chunk below, `air_time` is converted to hours, and a new variable
+`mph` is created, corresponding to the miles per hour of the flight.
+
+```{r calculate-mph}
+flights %>%
+  mutate(hours = air_time / 60,
+         mph   = distance / hours) %>%
+  select(air_time, distance, hours, mph)
+```
+
+Using <= in the mutate creates a new variable `on_time` that is `TRUE` if the 
+flight is on time and `FALSE` if it is not.
+
+```{r calculate-ontime}
+flights %>%
+  mutate(on_time = arr_delay <= 0) %>%
+  select(arr_delay, on_time)
+```
+
+**Question:** What do you think will happen if you take the `mean()` of the 
+`on_time` variable?
+
+### `summarize()`
+
+`summarize` calculates summary statistics. It collapses rows into summary 
+statistics and removes columns irrelevant to the calculation.
+
+Be sure to name your columns!
+
+```{r find-mean-delay}
+flights %>%
+  summarize(mean_dep_delay = mean(dep_delay))
+```
+
+**Question:** The code chunk above should return an `NA`. What is wrong? 
+Try to fix it to find the mean departure delay.
+
+`NA`s are sticky. If you calculate a summary statistic with an `NA` present
+the result will almost always be `NA`.
+
+```{r find-mean-delay-no-na}
+flights %>%
+  summarize(prop_on_time = mean(arr_delay <= 0, na.rm = TRUE))
+```
+
+### `group_by()`
+
+`group_by()` is used for grouped operations. It's very powerful when paired with
+summarize to calculate summary statistics by group.
+
+Here we find the proportion of flights that are on time for each month of the
+year.
+
+```{r delays-by-month}
+flights %>%
+  group_by(month) %>%
+  summarize(prop_on_time = mean(arr_delay <= 0, na.rm = TRUE))
+```
+
+We can calculate more than one summary statistic in `summarize()`. In addition
+to the proportion on time for each month, let's find the maximum delay, 
+median delay, and the count of flights in each month.
+
+Here `n()` calculates the current group size.
+
+```{r summarize-by-month}
+flights %>%
+  group_by(month) %>%
+  summarize(prop_on_time = mean(arr_delay <= 0, na.rm = TRUE),
+            max_delay    = max(arr_delay, na.rm = TRUE),
+            median_delay = median(arr_delay, na.rm = TRUE),
+            count        = n())
+```
+
+Finally, let's see what the proportion on time is for EWR, JFK, and LGA.
+
+```{r ontime-nyc}
+flights %>%
+  group_by(origin) %>%
+  summarize(on_time = mean(dep_delay <= 0, na.rm = TRUE))
+```
+
+### `count()`
+
+`count` counts the unique values of one or more variables. It creates frequency
+tables.
+
+```{r count}
+flights %>%
+  count(origin)
+```
+
+**Question:** What is the code chunk below doing?
+
+We compute the proportion of flights in the dataset that originate from one of
+the three main airports.
+
+```{r find-prop}
+flights %>%
+  count(origin) %>%
+  mutate(prop = n / sum(n))
+```
+
+## Practice
+
+(1) Create a new dataset that only contains flights that do not have a missing
+    departure time. Include the columns `year`, `month`, `day`, `dep_time`, 
+    `dep_delay`, and `dep_delay_hours` (the departure delay in hours). Note you 
+    may need to use `mutate()` to make one or more of these variables.
+
+```{r practice-1}
+flights %>%
+  filter(!is.na(dep_time)) %>%
+  mutate(dep_delay_hours = dep_delay / 60) %>%
+  select(year:dep_time, dep_delay, dep_delay_hours)
+```
+
+(2) For each airplane (uniquely identified by `tailnum`), use a `group_by()` 
+    paired with `summarize()` to find the sample size, mean, and standard 
+    deviation of flight distances. Then, pick off the top 5 and bottom 5 
+    airplanes in terms of mean distance traveled per flight.
+
+```{r practice-2}
+flights %>%
+  group_by(tailnum) %>%
+  summarize(n_dist = n(),
+            mean_dist = mean(distance, na.rm = TRUE),
+            sd_dist = sd(distance, na.rm = TRUE)) %>%
+  arrange(desc(mean_dist)) %>%
+  slice(c(1:5,((n()-4):n())))   
+```
+
+### Additional Resources
+
+- https://rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf
+- https://style.tidyverse.org/
